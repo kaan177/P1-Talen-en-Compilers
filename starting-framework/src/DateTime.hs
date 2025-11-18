@@ -37,8 +37,22 @@ newtype Minute = Minute {runMinute :: Int} deriving (Eq, Ord, Show)
 newtype Second = Second {runSecond :: Int} deriving (Eq, Ord, Show)
 
 -- Exercise 1
+-- type Parser Char DateTime = [Char] → [(DateTime, [Char])]
 parseDateTime :: Parser Char DateTime
-parseDateTime = undefined
+parseDateTime = DateTime <$> parseDate <*> parseTime <*> parseIsUtc
+
+parseDate :: Parser Char Date
+parseDate = undefined
+
+parseTime :: Parser Char Time
+parseTime = undefined
+
+parseIsUtc :: Parser Char Bool
+parseIsUtc = undefined
+
+isUtc :: [Char] -> Bool
+isUtc (x:_) = x == 'Z'
+isUtc = False
 
 -- Exercise 2
 run :: Parser a b -> [a] -> Maybe b
