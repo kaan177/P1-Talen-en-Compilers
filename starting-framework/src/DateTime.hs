@@ -1,6 +1,7 @@
 module DateTime where
 
 import ParseLib.Derived
+import Prelude
 
 -- | "Target" datatype for the DateTime parser, i.e, the parser should produce elements of this type.
 data DateTime = DateTime
@@ -42,21 +43,26 @@ parseDateTime :: Parser Char DateTime
 parseDateTime = DateTime <$> parseDate <*> parseTime <*> parseIsUtc
 
 parseDate :: Parser Char Date
-parseDate = undefined
+parseDate = Date <$> (Year <$> parse4Digits) <*> (Month <$> parse2Digits) <*> (Day <$> parse2Digits)
 
 parseTime :: Parser Char Time
-parseTime = undefined
+parseTime = Time <$> (Hour <$> parse2Digits) <*> (Minute <$> parse2Digits) <*> (Second <$> parse2Digits)
+
+parse4Digits :: Parser Char Int
+parse4Digits = (\a b c d -> a * 1000 + b * 100 + c * 10 + d) <$> newdigit <*> newdigit <*> newdigit <*> newdigit
+
+parse2Digits :: Parser Char Int
+parse2Digits = (\a b -> a * 10 + b) <$> newdigit <*> newdigit
 
 parseIsUtc :: Parser Char Bool
-parseIsUtc = undefined
-
-isUtc :: [Char] -> Bool
-isUtc (x:_) = x == 'Z'
-isUtc = False
+parseIsUtc = True <$ symbol 'Z'
 
 -- Exercise 2
 run :: Parser a b -> [a] -> Maybe b
-run = undefined
+run p xs = do
+      (b, [a]) <- Just (head (parse p xs))
+      Just b
+
 
 -- Exercise 3
 printDateTime :: DateTime -> String
