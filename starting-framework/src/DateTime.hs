@@ -66,7 +66,11 @@ run p xs = do
 
 -- Exercise 3
 printDateTime :: DateTime -> String
-printDateTime = undefined
+printDateTime (DateTime (Date year month day) (Time hour minute second) utc) =
+  show (runYear year) ++ show (runMonth month) ++ show (runDay day) ++
+  "T" ++
+  show (runHour hour) ++ show (runMinute minute) ++ show (runSecond second) ++
+  (if utc then "Z" else "")
 
 -- Exercise 4
 parsePrint :: [Char] -> Maybe String
@@ -74,4 +78,26 @@ parsePrint s = fmap printDateTime (run parseDateTime s)
 
 -- Exercise 5
 checkDateTime :: DateTime -> Bool
-checkDateTime = undefined
+checkDateTime (DateTime (Date year month day) (Time hour minute second) utc) =
+  (runYear year > -1) && (runMonth month > 0 && runMonth month < 13) && validDay (runYear year) (runMonth month) (runDay day) &&
+  (runHour hour > 0 && runHour hour < 24) && (runMinute minute > 0 && runMinute minute < 60) && (runSecond second > 0 && runSecond second < 60) 
+
+
+validDay :: Int -> Int -> Int -> Bool
+validDay 1  _ d = d > 0 && d <= 31
+validDay 2  y d = d > 0 && d <= (if isLeapYear y then 29 else 28)
+validDay 3  _ d = d > 0 && d <= 31
+validDay 4  _ d = d > 0 && d <= 30
+validDay 5  _ d = d > 0 && d <= 31
+validDay 6  _ d = d > 0 && d <= 30
+validDay 7  _ d = d > 0 && d <= 31
+validDay 8  _ d = d > 0 && d <= 31
+validDay 9  _ d = d > 0 && d <= 30
+validDay 10 _ d = d > 0 && d <= 31
+validDay 11 _ d = d > 0 && d <= 30
+validDay 12 _ d = d > 0 && d <= 31
+validDay _  _ _ = False
+
+isLeapYear :: Int -> Bool
+isLeapYear y = (y `mod` 4 == 0 && y `mod` 100 /= 0) || (y `mod` 400 == 0)
+
