@@ -2,6 +2,7 @@ module DateTime where
 
 import ParseLib.Derived
 import Prelude
+import Data.Maybe
 
 -- | "Target" datatype for the DateTime parser, i.e, the parser should produce elements of this type.
 data DateTime = DateTime
@@ -38,12 +39,12 @@ newtype Minute = Minute {runMinute :: Int} deriving (Eq, Ord, Show)
 newtype Second = Second {runSecond :: Int} deriving (Eq, Ord, Show)
 
 -- Exercise 1
--- type Parser Char DateTime = [Char] → [(DateTime, [Char])]
 parseDateTime :: Parser Char DateTime
 parseDateTime = DateTime <$> parseDate <*> parseTime <*> parseIsUtc
 
+-- ParseDate includes a parsing of symbol 'T' but discards it as it is never use anywhere in the DateTime syntax
 parseDate :: Parser Char Date
-parseDate = Date <$> (Year <$> parse4Digits) <*> (Month <$> parse2Digits) <*> (Day <$> parse2Digits)
+parseDate = (Date <$> (Year <$> parse4Digits) <*> (Month <$> parse2Digits) <*> (Day <$> parse2Digits)) <* symbol 'T'
 
 parseTime :: Parser Char Time
 parseTime = Time <$> (Hour <$> parse2Digits) <*> (Minute <$> parse2Digits) <*> (Second <$> parse2Digits)
@@ -59,18 +60,36 @@ parseIsUtc = True <$ symbol 'Z'
 
 -- Exercise 2
 run :: Parser a b -> [a] -> Maybe b
-run p xs = do
-      (b, [a]) <- Just (head (parse p xs))
-      Just b
+run p xs =
+      case getParserResult p xs of
+        Nothing -> Nothing
+        Just (b, _rest) -> Just b
 
+getParserResult :: Parser a b -> [a] -> Maybe (b, [a])
+getParserResult p xs = let
+                  aList = parse p xs
+                  in
+                  listToMaybeHead aList
+
+listToMaybeHead :: [(a, [s])] -> Maybe (a, [s])
+listToMaybeHead [x] = Just x
+listToMaybeHead _ = Nothing
 
 -- Exercise 3
 printDateTime :: DateTime -> String
 printDateTime (DateTime (Date year month day) (Time hour minute second) utc) =
-  show (runYear year) ++ show (runMonth month) ++ show (runDay day) ++
+  showLen (runYear year) 4 ++ showLen (runMonth month) 2 ++ showLen (runDay day) 2 ++
   "T" ++
-  show (runHour hour) ++ show (runMinute minute) ++ show (runSecond second) ++
+  showLen (runHour hour) 2 ++ showLen (runMinute minute) 2 ++ showLen (runSecond second) 2 ++
   (if utc then "Z" else "")
+
+-- Version of show which adds leading 0s until length is matched
+showLen :: Show a => a -> Int -> String
+showLen toShow len = let
+                        partialResult = show toShow
+                        missingLen = len - length partialResult
+                        result = replicate missingLen '0' ++ partialResult
+                        in result
 
 -- Exercise 4
 parsePrint :: [Char] -> Maybe String
@@ -79,10 +98,10 @@ parsePrint s = fmap printDateTime (run parseDateTime s)
 -- Exercise 5
 checkDateTime :: DateTime -> Bool
 checkDateTime (DateTime (Date year month day) (Time hour minute second) utc) =
-  (runYear year > -1) && (runMonth month > 0 && runMonth month < 13) && validDay (runYear year) (runMonth month) (runDay day) &&
-  (runHour hour > 0 && runHour hour < 24) && (runMinute minute > 0 && runMinute minute < 60) && (runSecond second > 0 && runSecond second < 60) 
+  (runYear year > -1) && (runMonth month > 0 && runMonth month < 13) && validDay (runMonth month) (runYear year) (runDay day) &&
+  (runHour hour > -1 && runHour hour < 24) && (runMinute minute > -1 && runMinute minute < 60) && (runSecond second > -1 && runSecond second < 60) 
 
-
+-- Month, Year, Day
 validDay :: Int -> Int -> Int -> Bool
 validDay 1  _ d = d > 0 && d <= 31
 validDay 2  y d = d > 0 && d <= (if isLeapYear y then 29 else 28)
