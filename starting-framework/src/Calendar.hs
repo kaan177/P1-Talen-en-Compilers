@@ -21,8 +21,8 @@ data Event = Event
     uid :: String,         --Required
     startDate :: DateTime, --Required
     endDate :: DateTime,   --Required
-    description :: String, --Optional
     summary :: String,     --Required
+    description :: String, --Optional
     location :: String     --Optional
   }
   deriving (Eq, Ord, Show)
@@ -34,8 +34,31 @@ data Event = Event
 
 -- Exercise 7
 data Token = Token
+  {
+    header :: Header,
+    content :: Content
+  }
   deriving (Eq, Ord, Show)
 
+data Header = PRODID | VERSION | DTSTAMP | UID | DTSTART | DTEND | SUMMARY | DESCRIPTION | LOCATION deriving (Enum, Eq, Ord, Show, Generic, CustomData)
+-- List of token is for storing an event
+data Content = DateTime DateTime | String String | Tokens [Token] deriving (Eq, Ord, Show, Generic, CustomData)
+
+getHeader :: String -> Header
+getHeader "PRODID" = PRODID
+getHeader "VERSION" = VERSION
+getHeader "DTSTAMP" = DTSTAMP
+getHeader "UID" = UID
+getHeader "DTSTART" = DTSTART
+getHeader "DTEND" = DTEND
+getHeader "SUMMARY" = SUMMARY
+getHeader "DESCRIPTION" = DESCRIPTION
+getHeader "LOCATION" = LOCATION
+getHeader _ = undefined --Use undefined as an error here 
+
+--TODO
+--Split on newlines
+--To read content, use DropWhile (!= :) (because we can have multiple : so split does not work)
 lexCalendar :: Parser Char [Token]
 lexCalendar = undefined
 
