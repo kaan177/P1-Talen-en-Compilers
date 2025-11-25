@@ -54,7 +54,6 @@ getHeader "DTEND" = DTEND
 getHeader "SUMMARY" = SUMMARY
 getHeader "DESCRIPTION" = DESCRIPTION
 getHeader "LOCATION" = LOCATION
-getHeader _ = undefined --Use undefined as an error here 
 
 --TODO
 --Split on newlines
