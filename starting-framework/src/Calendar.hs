@@ -62,6 +62,17 @@ getHeader "SUMMARY" = SUMMARY
 getHeader "DESCRIPTION" = DESCRIPTION
 getHeader "LOCATION" = LOCATION
 
+showHeader :: Header -> String
+showHeader PRODID = "PRODID"
+showHeader VERSION = "VERSION"
+showHeader DTSTAMP = "DTSTAMP"
+showHeader UID = "UID" 
+showHeader DTSTART = "DTSTART"
+showHeader DTEND = "DTEND"
+showHeader SUMMARY = "SUMMARY"
+showHeader DESCRIPTION = "DESCRIPTION"
+showHeader LOCATION = "LOCATION"
+
 newline :: Parser Char Char
 newline = symbol '\n'
 
@@ -112,6 +123,18 @@ parseCalendar = undefined
 parseCalendar' :: String -> Maybe Calendar
 parseCalendar' s = run lexCalendar s >>= run parseCalendar
 
+printContent :: Content -> String
+printContent DateTime = printDateTime
+printContent String = show
+printContent Tokens = printEvent
+
+printToken :: Token -> String
+printToken (Token header content) = printHeader header ++ printContent content ++ "\n"
+
+printEvent :: [Token] -> String
+printEvent = "BEGIN:VEVENT\n" ++ map printToken ++ "END:VEVENT\n"
+--printEvent (Event stampDate uid startDate endDate summary description location) = undefined
+
 -- Exercise 8
 printCalendar :: Calendar -> String
-printCalendar = undefined
+printCalendar (Calender version prodID events) = "BEGIN:VCALENDER\n" ++ "VERSION:" ++ version ++ "\nPRODID:" ++ prodID ++ "\n" ++ map printEvent events ++ "END:VCALENDER"
