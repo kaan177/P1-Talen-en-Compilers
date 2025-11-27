@@ -99,7 +99,7 @@ parsePrint s = fmap printDateTime (run parseDateTime s)
 checkDateTime :: DateTime -> Bool
 checkDateTime (DateTime (Date year month day) (Time hour minute second) utc) =
   (runYear year > -1) && (runMonth month > 0 && runMonth month < 13) && validDay (runMonth month) (runYear year) (runDay day) &&
-  (runHour hour > -1 && runHour hour < 24) && (runMinute minute > -1 && runMinute minute < 60) && (runSecond second > -1 && runSecond second < 60) 
+  (runHour hour > -1 && runHour hour < 24) && (runMinute minute > -1 && runMinute minute < 60) && (runSecond second > -1 && runSecond second < 60)
 
 -- Month, Year, Day
 validDay :: Int -> Int -> Int -> Bool
@@ -120,3 +120,37 @@ validDay _  _ _ = False
 isLeapYear :: Int -> Bool
 isLeapYear y = (y `mod` 4 == 0 && y `mod` 100 /= 0) || (y `mod` 400 == 0)
 
+daysInMonth :: Year -> Month -> Int
+daysInMonth (Year y) (Month m) =
+  case m of
+    1  -> 31
+    2  -> if isLeap y then 29 else 28
+    3  -> 31
+    4  -> 30
+    5  -> 31
+    6  -> 30
+    7  -> 31
+    8  -> 31
+    9  -> 30
+    10 -> 31
+    11 -> 30
+    12 -> 31
+    _  -> error "Invalid month"
+  where
+    isLeap yr =
+      (yr `mod` 4 == 0 && yr `mod` 100 /= 0) || yr `mod` 400 == 0
+
+dateToDays :: Date -> Int
+dateToDays (Date (Year y) (Month m) (Day d)) =
+    let
+        yearsDays = y * 365 + y `div` 4 - y `div` 100 + y `div` 400
+        monthsDays = sum [ daysInMonth (Year y) (Month m') | m' <- [1 .. m - 1] ]
+    in yearsDays + monthsDays + (d - 1)
+
+timeToMinutes :: Time -> Int
+timeToMinutes (Time (Hour h) (Minute mi) (Second s)) =
+    h * 60 + mi + s `div` 60
+
+dateTimeToMinutes :: DateTime -> Int
+dateTimeToMinutes (DateTime date time _utcFlag) =
+    dateToDays date * 24 * 60 + timeToMinutes time
