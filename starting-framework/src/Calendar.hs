@@ -14,25 +14,20 @@ import Data.Functor
 -- Exercise 6
 data Calendar = Calendar
   {
-    version :: String,
-    prodID :: String,
+    calprops :: [CalProp],
     events :: [Event]
   }
   deriving (Eq, Ord, Show)
 
+data CalProp = PRODID String | VERSION String deriving (Eq, Ord, Show)
 -- Even is a data type that has a few required entries and a few optional ones. The order of the contents does not matter to the event
 data Event = Event
   {
-    stampDate :: DateTime, --Required
-    uid :: String,         --Required
-    startDate :: DateTime, --Required
-    endDate :: DateTime,   --Required
-    summary :: String,     --Required
-    description :: String, --Optional
-    location :: String     --Optional
+    eventprops :: [EventProps]
   }
   deriving (Eq, Ord, Show)
 
+data EventProps = DTSTAMP DateTime | UID String | DTSTART DateTime | DTEND DateTime | SUMMARY String | DESCRIPTION String | LOCATION String
 -- If you plan on using your own types in Calendar, Event, or Token. Make sure it derives Eq, Generic, and CustomData.
 -- Example:
 -- data ExampleCustomData = ExampleCustomData
@@ -46,7 +41,7 @@ data Token = Token
   }
   deriving (Eq, Ord, Show)
 
-data Header = PRODID | VERSION | EVENT | DTSTAMP | UID | DTSTART | DTEND | SUMMARY | DESCRIPTION | LOCATION deriving (Enum, Eq, Ord, Show, Generic, CustomData)
+newtype Header = Header String deriving ( Eq, Ord, Show, Generic, CustomData)
 -- List of token is for storing an event
 data Content = Timestamp DateTime | String String | Tokens [Token] deriving (Eq, Ord, Show, Generic, CustomData)
 
