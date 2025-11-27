@@ -43,19 +43,7 @@ data Token = Token
 
 newtype Header = Header String deriving ( Eq, Ord, Show, Generic, CustomData)
 -- List of token is for storing an event
-data Content = Timestamp DateTime | String String | EventToken Event deriving (Eq, Ord, Show, Generic, CustomData)
-
--- Note cannot retreive EVENT enum from get header, as not done through string
-getHeader :: String -> Header
-getHeader "PRODID" = PRODID
-getHeader "VERSION" = VERSION
-getHeader "DTSTAMP" = DTSTAMP
-getHeader "UID" = UID
-getHeader "DTSTART" = DTSTART
-getHeader "DTEND" = DTEND
-getHeader "SUMMARY" = SUMMARY
-getHeader "DESCRIPTION" = DESCRIPTION
-getHeader "LOCATION" = LOCATION
+data Content = Timestamp DateTime | String String | Tokens [Token] deriving (Eq, Ord, Show, Generic, CustomData)
 
 newline :: Parser Char Char
 newline = symbol '\n'
@@ -66,37 +54,37 @@ parseBeforeColon = greedy (satisfy (/=':'))
 colon :: Parser Char Char
 colon = symbol ':'
 
-parseHeader :: Parser Char Header
-parseHeader = getHeader <$> some (satisfy Char.isAlpha)
+lexHeader :: Parser Char Header
+lexHeader = Header <$> some (satisfy Char.isAlpha)
 
-parseContent :: Header -> Parser Char Content
-parseContent header =
+lexContent :: Header -> Parser Char Content
+lexContent (Header header) =
   case header of
-    (DTSTAMP _) -> Timestamp <$> parseDateTime
-    (DTSTART _) -> Timestamp <$> parseDateTime
-    (DTEND _)   -> Timestamp <$> parseDateTime
+    "DTSTAMP" -> Timestamp <$> parseDateTime
+    "DTSTART" -> Timestamp <$> parseDateTime
+    "DTEND"   -> Timestamp <$> parseDateTime
     _       -> String   <$> greedy (satisfy (/='\n'))
 
-parseLine :: Parser Char Token
-parseLine = do
+lexLine :: Parser Char Token
+lexLine = do
   key <- parseBeforeColon
   _   <- colon
-  let header = getHeader key
-  content   <- parseContent header
+  let header = Header key
+  content   <- lexContent header
   _   <- newline
   pure (Token header content)
 
-parseEvent :: Parser Char Token
-parseEvent = do
+lexEvent :: Parser Char Token
+lexEvent = do
   _ <- token "BEGIN:VEVENT" *> newline
-  tokens <- many parseLine
+  tokens <- many lexLine
   _ <- token "END:VEVENT" *> newline
-  pure (Token EVENT (Tokens tokens))
+  pure (Token (Header "EVENT") (Tokens tokens))
 
 lexCalendar :: Parser Char [Token]
 lexCalendar = do
   _ <- token "BEGIN:VCALENDAR" *> newline
-  tokens <- many (parseEvent <|> parseLine)
+  tokens <- many (lexEvent <|> lexLine)
   _ <- ((token "END:VCALENDAR" *> newline) $> ()) <|> (token "END:VCALENDAR" $> ())
   pure tokens
 
@@ -106,17 +94,6 @@ parseCalendar = undefined
 
 parseCalendar' :: String -> Maybe Calendar
 parseCalendar' s = run lexCalendar s >>= run parseCalendar
-
-printContent :: Content -> String
-printContent content =
-          case content of
-            Timestamp content -> printDateTime content
-            String string -> show string
-            EventToken event -> printEvent event
-
-
-printToken :: Token -> String
-printToken (Token header content) = show header ++ printContent content ++ "\n"
 
 printCalProp :: CalProp -> String
 printCalProp (VERSION v) = "VERSION:" ++ v
