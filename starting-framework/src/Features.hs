@@ -6,7 +6,7 @@ import Calendar
 
 -- Exercise 9
 countEvents :: Calendar -> Int
-countEvents (Calender _ _ events) = length events
+countEvents (Calendar _ events) = length events
 
 findEvents :: DateTime -> Calendar -> [Event]
 findEvents = undefined

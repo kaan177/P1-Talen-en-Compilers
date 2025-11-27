@@ -45,29 +45,6 @@ newtype Header = Header String deriving ( Eq, Ord, Show, Generic, CustomData)
 -- List of token is for storing an event
 data Content = Timestamp DateTime | String String | Tokens [Token] deriving (Eq, Ord, Show, Generic, CustomData)
 
--- Note cannot retreive EVENT enum from get header, as not done through string
-getHeader :: String -> Header
-getHeader "PRODID" = PRODID
-getHeader "VERSION" = VERSION
-getHeader "DTSTAMP" = DTSTAMP
-getHeader "UID" = UID
-getHeader "DTSTART" = DTSTART
-getHeader "DTEND" = DTEND
-getHeader "SUMMARY" = SUMMARY
-getHeader "DESCRIPTION" = DESCRIPTION
-getHeader "LOCATION" = LOCATION
-
-showHeader :: Header -> String
-showHeader PRODID = "PRODID"
-showHeader VERSION = "VERSION"
-showHeader DTSTAMP = "DTSTAMP"
-showHeader UID = "UID" 
-showHeader DTSTART = "DTSTART"
-showHeader DTEND = "DTEND"
-showHeader SUMMARY = "SUMMARY"
-showHeader DESCRIPTION = "DESCRIPTION"
-showHeader LOCATION = "LOCATION"
-
 newline :: Parser Char Char
 newline = symbol '\n'
 
@@ -77,37 +54,37 @@ parseBeforeColon = greedy (satisfy (/=':'))
 colon :: Parser Char Char
 colon = symbol ':'
 
-parseHeader :: Parser Char Header
-parseHeader = getHeader <$> some (satisfy Char.isAlpha)
+lexHeader :: Parser Char Header
+lexHeader = Header <$> some (satisfy Char.isAlpha)
 
-parseContent :: Header -> Parser Char Content
-parseContent header =
+lexContent :: Header -> Parser Char Content
+lexContent (Header header) =
   case header of
-    DTSTAMP -> Timestamp <$> parseDateTime
-    DTSTART -> Timestamp <$> parseDateTime
-    DTEND   -> Timestamp <$> parseDateTime
+    "DTSTAMP" -> Timestamp <$> parseDateTime
+    "DTSTART" -> Timestamp <$> parseDateTime
+    "DTEND"   -> Timestamp <$> parseDateTime
     _       -> String   <$> greedy (satisfy (/='\n'))
 
-parseLine :: Parser Char Token
-parseLine = do
+lexLine :: Parser Char Token
+lexLine = do
   key <- parseBeforeColon
   _   <- colon
-  let header = getHeader key
-  content   <- parseContent header
+  let header = Header key
+  content   <- lexContent header
   _   <- newline
   pure (Token header content)
 
-parseEvent :: Parser Char Token
-parseEvent = do
+lexEvent :: Parser Char Token
+lexEvent = do
   _ <- token "BEGIN:VEVENT" *> newline
-  tokens <- many parseLine
+  tokens <- many lexLine
   _ <- token "END:VEVENT" *> newline
-  pure (Token EVENT (Tokens tokens))
+  pure (Token (Header "EVENT") (Tokens tokens))
 
 lexCalendar :: Parser Char [Token]
 lexCalendar = do
   _ <- token "BEGIN:VCALENDAR" *> newline
-  tokens <- many (parseEvent <|> parseLine)
+  tokens <- many (lexEvent <|> lexLine)
   _ <- ((token "END:VCALENDAR" *> newline) $> ()) <|> (token "END:VCALENDAR" $> ())
   pure tokens
 
@@ -145,21 +122,22 @@ parseEvent = satisfy (\(Token (Header s) _) -> s == "EVENT") *>
 parseCalendar' :: String -> Maybe Calendar
 parseCalendar' s = run lexCalendar s >>= run parseCalendar
 
-printContent :: Content -> String
-printContent content =
-          case content of
-            Timestamp content -> printDateTime content
-            String string -> show string
-            Tokens tokens -> printEvent tokens
+printCalProp :: CalProp -> String
+printCalProp (VERSION v) = "VERSION:" ++ v
+printCalProp (PRODID p ) = "PRODID:"  ++ p
 
+printEventProp :: EventProp -> String
+printEventProp (DTSTAMP     d) = "DTSTAMP:"     ++ printDateTime d
+printEventProp (DTSTART     d) = "DTSTART:"     ++ printDateTime d
+printEventProp (DTEND       d) = "DTEND:"       ++ printDateTime d
+printEventProp (UID         u) = "UID:"         ++ u
+printEventProp (SUMMARY     s) = "SUMMARY:"     ++ s
+printEventProp (DESCRIPTION d) = "DESCRIPTION:" ++ d
+printEventProp (LOCATION    l) = "LOCATION:"    ++ l
 
-printToken :: Token -> String
-printToken (Token header content) = printHeader header ++ printContent content ++ "\n"
-
-printEvent :: [Token] -> String
-printEvent = "BEGIN:VEVENT\n" ++ map printToken ++ "END:VEVENT\n"
---printEvent (Event stampDate uid startDate endDate summary description location) = undefined
+printEvent :: Event -> String
+printEvent (Event eventProps) = "BEGIN:VEVENT\n" ++ undefined ++ "END:VEVENT\n"
 
 -- Exercise 8
 printCalendar :: Calendar -> String
-printCalendar (Calendar version prodID events) = "BEGIN:VCALENDER\n" ++ "VERSION:" ++ version ++ "\nPRODID:" ++ prodID ++ "\n" ++ map printEvent events ++ "END:VCALENDER"
+printCalendar (Calendar calProps events) = "BEGIN:VCALENDER\n" ++ unwords (map printCalProp calProps) ++ unwords (map printEvent events) ++ "END:VCALENDER"
