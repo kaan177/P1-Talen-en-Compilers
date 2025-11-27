@@ -124,9 +124,12 @@ parseCalendar' :: String -> Maybe Calendar
 parseCalendar' s = run lexCalendar s >>= run parseCalendar
 
 printContent :: Content -> String
-printContent DateTime = printDateTime
-printContent String = show
-printContent Tokens = printEvent
+printContent content =
+          case content of
+            Timestamp content -> printDateTime content
+            String string -> show string
+            Tokens tokens -> printEvent tokens
+
 
 printToken :: Token -> String
 printToken (Token header content) = printHeader header ++ printContent content ++ "\n"
@@ -137,4 +140,4 @@ printEvent = "BEGIN:VEVENT\n" ++ map printToken ++ "END:VEVENT\n"
 
 -- Exercise 8
 printCalendar :: Calendar -> String
-printCalendar (Calender version prodID events) = "BEGIN:VCALENDER\n" ++ "VERSION:" ++ version ++ "\nPRODID:" ++ prodID ++ "\n" ++ map printEvent events ++ "END:VCALENDER"
+printCalendar (Calendar version prodID events) = "BEGIN:VCALENDER\n" ++ "VERSION:" ++ version ++ "\nPRODID:" ++ prodID ++ "\n" ++ map printEvent events ++ "END:VCALENDER"
