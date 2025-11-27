@@ -23,11 +23,11 @@ data CalProp = PRODID String | VERSION String deriving (Eq, Ord, Show)
 -- Even is a data type that has a few required entries and a few optional ones. The order of the contents does not matter to the event
 data Event = Event
   {
-    eventprops :: [EventProps]
+    eventprops :: [EventProp]
   }
   deriving (Eq, Ord, Show)
 
-data EventProps = DTSTAMP DateTime | UID String | DTSTART DateTime | DTEND DateTime | SUMMARY String | DESCRIPTION String | LOCATION String
+data EventProp = DTSTAMP DateTime | UID String | DTSTART DateTime | DTEND DateTime | SUMMARY String | DESCRIPTION String | LOCATION String deriving (Eq, Ord, Show)
 -- If you plan on using your own types in Calendar, Event, or Token. Make sure it derives Eq, Generic, and CustomData.
 -- Example:
 -- data ExampleCustomData = ExampleCustomData
@@ -113,7 +113,34 @@ lexCalendar = do
 
 
 parseCalendar :: Parser Token Calendar
-parseCalendar = undefined
+parseCalendar = Calendar <$> parseCalprops <*> parseEvents
+
+parseCalprops :: Parser Token [CalProp]
+parseCalprops = greedy (parseVersion <|> parseProdID)
+
+parseVersion :: Parser Token CalProp
+parseVersion = (\(Token _ (String s)) -> VERSION s) <$> satisfy (\(Token (Header s) _) -> s == "VERSION")
+
+parseProdID :: Parser Token CalProp
+parseProdID = (\(Token _ (String s)) -> PRODID s) <$> satisfy (\(Token (Header s) _) -> s == "PRODID")
+
+parseEvents :: Parser Token [Event]
+parseEvents = greedy parseEvent
+
+parseEvent :: Parser Token Event
+parseEvent = satisfy (\(Token (Header s) _) -> s == "EVENT") *>
+  (Event <$> greedy (choice [
+  (\(Token _ (Timestamp s)) -> DTSTAMP s) <$> satisfy (\(Token (Header s) _) -> s == "DTSTAMP"),
+  (\(Token _ (String s)) -> UID s) <$> satisfy (\(Token (Header s) _) -> s == "UID"),
+  (\(Token _ (Timestamp s)) -> DTSTART s) <$> satisfy (\(Token (Header s) _) -> s == "DTSTART"),
+  (\(Token _ (Timestamp s)) -> DTEND s) <$> satisfy (\(Token (Header s) _) -> s == "DTEND"),
+  (\(Token _ (String s)) -> SUMMARY s) <$> satisfy (\(Token (Header s) _) -> s == "SUMMARY"),
+  (\(Token _ (String s)) -> DESCRIPTION s) <$> satisfy (\(Token (Header s) _) -> s == "DESCRIPTION"),
+  (\(Token _ (String s)) -> LOCATION s) <$> satisfy (\(Token (Header s) _) -> s == "LOCATION")
+  ]))
+
+
+
 
 parseCalendar' :: String -> Maybe Calendar
 parseCalendar' s = run lexCalendar s >>= run parseCalendar
