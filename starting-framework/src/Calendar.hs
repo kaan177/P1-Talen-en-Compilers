@@ -99,6 +99,15 @@ printCalProp :: CalProp -> String
 printCalProp (VERSION v) = "VERSION:" ++ v
 printCalProp (PRODID p ) = "PRODID:"  ++ p
 
+showEventPropHeader :: EventProp -> String
+showEventPropHeader (DTSTAMP     _) = "DTSTAMP"
+showEventPropHeader (DTSTART     _) = "DTSTART"
+showEventPropHeader (DTEND       _) = "DTEND"
+showEventPropHeader (UID         _) = "UID"
+showEventPropHeader (SUMMARY     _) = "SUMMARY"
+showEventPropHeader (DESCRIPTION _) = "DESCRIPTION"
+showEventPropHeader (LOCATION    _) = "LOCATION"
+
 printEventProp :: EventProp -> String
 printEventProp (DTSTAMP     d) = "DTSTAMP:"     ++ printDateTime d
 printEventProp (DTSTART     d) = "DTSTART:"     ++ printDateTime d
